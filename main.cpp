@@ -20,5 +20,6 @@ int main() {
     thr_grp.create_thread(boost::bind(&asio::io_service::run, ios));
   }
   Server server(io_services);
+  thr_grp.join_all();
   return 0;
 }

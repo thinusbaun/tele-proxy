@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 
 project(grey_proxy CXX)
-
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package (Threads REQUIRED) 
 # we will use static libs
 set(Boost_USE_STATIC_LIBS ON)
@@ -17,8 +18,13 @@ set(SRC_FILES
 	Server.cpp
 	Server.h
 	Connection.h
-	Connection.cpp)
+	Connection.cpp
+	HttpHeader.h
+	HttpHeader.cpp
+	HttpHeaderParser.h
+	HttpHeaderParser.cpp)
 
 add_definitions(-D_WIN32_WINNT=0x0601)
+add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
 add_executable(grey_proxy ${SRC_FILES})
 target_link_libraries(grey_proxy ${Boost_LIBRARIES} Threads::Threads)
