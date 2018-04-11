@@ -163,6 +163,10 @@ void Connection::handleServerReadHeaders(const bs::error_code& error,
                  boost::bind(&Connection::handleServerReadBody,
                              shared_from_this(), asio::placeholders::error,
                              asio::placeholders::bytes_transferred));
+    } else {
+      RespLen = -1;
+      RespReaded = 0;
+      tryParseBuffer(bs::error_code(), 0);
     }
   } else {
     BOOST_LOG_TRIVIAL(error) << "handle Server Read Headers error: " << error;
@@ -170,9 +174,39 @@ void Connection::handleServerReadHeaders(const bs::error_code& error,
   }
 }
 
+void Connection::tryParseBuffer(const bs::error_code& error, size_t len) {
+  auto prev = mServerBuff.size();
+  std::istream is(&mServerBuff);
+  std::string chunkSizeStr;
+  std::getline(is, chunkSizeStr);
+  boost::regex regex("[0-9a-fA-F]+\r");
+  boost::cmatch match;
+  if (boost::regex_match(chunkSizeStr.c_str(), match, regex)) {
+    std::stringstream ss;
+    ss << std::hex << chunkSizeStr;
+    ss >> RespLen;
+    auto bufs = mServerBuff.data();
+    RespReaded = mServerBuff.size();
+    std::copy(asio::buffers_begin(bufs), asio::buffers_end(bufs),
+              std::back_inserter(mResponseBuff));
+    mServerBuff.consume(mServerBuff.size());
+    async_read(mSSocket, mServerBuff,
+               asio::transfer_exactly(RespLen - RespReaded),
+               boost::bind(&Connection::handleServerReadBodyChunked,
+                           shared_from_this(), asio::placeholders::error,
+                           asio::placeholders::bytes_transferred));
+  } else {
+    asio::async_write(mBSocket, asio::buffer(mResponseBuff),
+                      boost::bind(&Connection::handleBrowserWrite,
+                                  shared_from_this(), asio::placeholders::error,
+                                  asio::placeholders::bytes_transferred));
+  }
+}
+
 void Connection::handleBrowserWrite(const bs::error_code& error, size_t len) {
   if (!error) {
     mServerBuff.consume(mServerBuff.size() + 1);
+    mResponseBuff.clear();
     shutdown();
   } else {
     BOOST_LOG_TRIVIAL(error) << "handle Browser Write error: " << error;
@@ -195,6 +229,38 @@ void Connection::handleServerReadBody(const bs::error_code& error, size_t len) {
           boost::bind(&Connection::handleBrowserWrite, shared_from_this(),
                       asio::placeholders::error,
                       asio::placeholders::bytes_transferred));
+  } else {
+    BOOST_LOG_TRIVIAL(error) << "handle Server Read Body error: " << error;
+    shutdown();
+  }
+}
+
+void Connection::handleServerReadBodyChunked(const bs::error_code& error,
+                                             size_t len) {
+  //   	std::cout << "handle_server_read_body. Error: " << err << " " <<
+  //   err.message()
+  //  			  << ", len=" << len << std::endl;
+  if (!error || error == asio::error::eof) {
+    auto prev = mServerBuff.size();
+    auto bufs = mServerBuff.data();
+
+    std::copy(asio::buffers_begin(bufs),
+              asio::buffers_begin(bufs) + std::min(len, RespLen - RespReaded),
+              std::back_inserter(mResponseBuff));
+    RespReaded += std::min(len, RespLen - RespReaded);
+    mServerBuff.consume(std::min(len, RespLen - RespReaded));
+    // 		std::cout << "len=" << len << " resp_readed=" << RespReaded << "
+    // RespLen=" << RespLen<< std::endl;
+    if (error == asio::error::eof) proxy_closed = true;
+    if (RespReaded >= RespLen) {
+      RespReaded = 0;
+      RespLen = -1;
+      asio::async_read_until(
+          mSSocket, mServerBuff, boost::regex("[0-9a-fA-F]+\r\n"),
+          boost::bind(&Connection::tryParseBuffer, shared_from_this(),
+                      asio::placeholders::error,
+                      asio::placeholders::bytes_transferred));
+    }
   } else {
     BOOST_LOG_TRIVIAL(error) << "handle Server Read Body error: " << error;
     shutdown();

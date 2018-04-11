@@ -41,8 +41,11 @@ class Connection : public boost::enable_shared_from_this<Connection> {
   void handleServerReadHeaders(const bs::error_code& error, size_t len);
   void handleBrowserWrite(const bs::error_code& error, size_t len);
   void handleServerReadBody(const bs::error_code& error, size_t len);
+  void handleServerReadBodyChunked(const bs::error_code& error, size_t len);
 
   void shutdown();
+
+  void tryParseBuffer(const bs::error_code& error, size_t len);
 
   asio::io_service& mIoService;
   asio::ip::tcp::socket mBSocket;
