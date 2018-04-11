@@ -50,7 +50,6 @@ class Connection : public boost::enable_shared_from_this<Connection> {
   asio::ip::tcp::resolver mResolver;
 
   boost::array<char, 8192> mBBuffer;
-  boost::array<char, 8192> mSBuffer;
 
   std::string mClientHeadersString;
   std::string mServerHeadersString;
@@ -60,4 +59,6 @@ class Connection : public boost::enable_shared_from_this<Connection> {
   bool isPersistent;
   size_t RespLen;
   size_t RespReaded;
+  asio::streambuf mServerBuff;
+  std::vector<char> mResponseBuff;
 };

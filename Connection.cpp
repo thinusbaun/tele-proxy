@@ -130,7 +130,11 @@ void Connection::handleServerWrite(const bs::error_code& error, size_t len) {
   // 	std::cout << "handle_server_write. Error: " << err << ", len=" << len <<
   // std::endl;
   if (!error) {
-    handleServerReadHeaders(bs::error_code(), 0);
+    asio::async_read_until(
+        mSSocket, mServerBuff, boost::regex("\r\n\r\n"),
+        boost::bind(&Connection::handleServerReadHeaders, shared_from_this(),
+                    asio::placeholders::error,
+                    asio::placeholders::bytes_transferred));
   } else {
     BOOST_LOG_TRIVIAL(error) << "handle Server Write error: " << error;
     shutdown();
@@ -140,29 +144,25 @@ void Connection::handleServerWrite(const bs::error_code& error, size_t len) {
 void Connection::handleServerReadHeaders(const bs::error_code& error,
                                          size_t len) {
   if (!error) {
-    mServerHeadersString += std::string(mSBuffer.data(), len);
-    if (mServerHeadersString.find("\r\n\r\n") == std::string::npos) {
-      asio::async_read(
-          mSSocket, asio::buffer(mSBuffer), asio::transfer_at_least(1),
-          boost::bind(&Connection::handleServerReadHeaders, shared_from_this(),
-                      asio::placeholders::error,
-                      asio::placeholders::bytes_transferred));
-    } else {
-      HttpHeaderParser parser;
-      HttpHeader header = parser.parseServerHeader(mServerHeadersString);
-      BOOST_LOG_TRIVIAL(info) << "Parsed header from server";
-      for (const auto& it : header.getEntries()) {
-        BOOST_LOG_TRIVIAL(info) << "  " << it.first << ": " << it.second;
-      }
-      RespLen = -1;
-      auto idx = mServerHeadersString.find("\r\n\r\n");
-      RespReaded = mServerHeadersString.size() - idx - 4;
+    auto bufs = mServerBuff.data();
+    mServerHeadersString =
+        std::string(asio::buffers_begin(bufs), asio::buffers_begin(bufs) + len);
+    mServerBuff.consume(len);
 
-      asio::async_write(
-          mBSocket, asio::buffer(mServerHeadersString),
-          boost::bind(&Connection::handleBrowserWrite, shared_from_this(),
-                      asio::placeholders::error,
-                      asio::placeholders::bytes_transferred));
+    HttpHeaderParser parser;
+    HttpHeader header = parser.parseServerHeader(mServerHeadersString);
+    BOOST_LOG_TRIVIAL(info) << "Parsed header from server";
+    for (const auto& it : header.getEntries()) {
+      BOOST_LOG_TRIVIAL(info) << "  " << it.first << ": " << it.second;
+    }
+    if (header.hasEntry("Content-Length")) {
+      RespLen = std::stoi(header.getEntry("Content-Length"));
+      RespReaded = mServerBuff.size();
+      async_read(mSSocket, mServerBuff,
+                 asio::transfer_exactly(RespLen - RespReaded),
+                 boost::bind(&Connection::handleServerReadBody,
+                             shared_from_this(), asio::placeholders::error,
+                             asio::placeholders::bytes_transferred));
     }
   } else {
     BOOST_LOG_TRIVIAL(error) << "handle Server Read Headers error: " << error;
@@ -172,20 +172,8 @@ void Connection::handleServerReadHeaders(const bs::error_code& error,
 
 void Connection::handleBrowserWrite(const bs::error_code& error, size_t len) {
   if (!error) {
-    if (!proxy_closed && (RespLen == -1 || RespReaded < RespLen))
-      async_read(mSSocket, asio::buffer(mSBuffer, len),
-                 asio::transfer_at_least(1),
-                 boost::bind(&Connection::handleServerReadBody,
-                             shared_from_this(), asio::placeholders::error,
-                             asio::placeholders::bytes_transferred));
-    else {
-      //			shutdown();
-      if (isPersistent && !proxy_closed) {
-        BOOST_LOG_TRIVIAL(info) << "Starting read headers from browser, as "
-                                   "connection is persistent";
-        start();
-      }
-    }
+    mServerBuff.consume(mServerBuff.size() + 1);
+    shutdown();
   } else {
     BOOST_LOG_TRIVIAL(error) << "handle Browser Write error: " << error;
     shutdown();
@@ -201,10 +189,12 @@ void Connection::handleServerReadBody(const bs::error_code& error, size_t len) {
     // 		std::cout << "len=" << len << " resp_readed=" << RespReaded << "
     // RespLen=" << RespLen<< std::endl;
     if (error == asio::error::eof) proxy_closed = true;
-    asio::async_write(mBSocket, asio::buffer(mSBuffer, len),
-                      boost::bind(&Connection::handleBrowserWrite,
-                                  shared_from_this(), asio::placeholders::error,
-                                  asio::placeholders::bytes_transferred));
+    if (RespReaded >= RespLen)
+      asio::async_write(
+          mBSocket, mServerBuff,
+          boost::bind(&Connection::handleBrowserWrite, shared_from_this(),
+                      asio::placeholders::error,
+                      asio::placeholders::bytes_transferred));
   } else {
     BOOST_LOG_TRIVIAL(error) << "handle Server Read Body error: " << error;
     shutdown();
