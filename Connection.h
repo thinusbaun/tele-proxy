@@ -40,12 +40,15 @@ class Connection : public boost::enable_shared_from_this<Connection> {
   void handleServerWrite(const bs::error_code& error, size_t len);
   void handleServerReadHeaders(const bs::error_code& error, size_t len);
   void handleBrowserWrite(const bs::error_code& error, size_t len);
+
   void handleServerReadBody(const bs::error_code& error, size_t len);
   void handleServerReadBodyChunked(const bs::error_code& error, size_t len);
 
   void shutdown();
 
   void tryParseBuffer(const bs::error_code& error, size_t len);
+  void createProperNonChunkedResponse();
+  void createProperChunkedResponse();
 
   asio::io_service& mIoService;
   asio::ip::tcp::socket mBSocket;
@@ -64,4 +67,5 @@ class Connection : public boost::enable_shared_from_this<Connection> {
   size_t RespReaded;
   asio::streambuf mServerBuff;
   std::vector<char> mResponseBuff;
+  std::vector<char> mProperResponseBuff;
 };
