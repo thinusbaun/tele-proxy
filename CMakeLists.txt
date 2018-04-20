@@ -28,7 +28,11 @@ set(SRC_FILES
 	HttpRequestHeader.h
 	HttpRequestHeader.cpp)
 
-add_definitions(-D_WIN32_WINNT=0x0601)
-add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
+if (MSVC)
+	add_definitions(-D_WIN32_WINNT=0x0601)
+	add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
+	add_definitions(-DBOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE)
+	add_compile_options(/wd4834)
+endif(MSVC)
 add_executable(grey_proxy ${SRC_FILES})
 target_link_libraries(grey_proxy ${Boost_LIBRARIES} Threads::Threads)
