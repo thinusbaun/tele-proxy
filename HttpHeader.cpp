@@ -20,10 +20,7 @@ std::map<std::string, std::string> HttpHeader::getEntries() const {
   return mEntries;
 }
 
-void HttpHeader::setMethod(const std::string& method) { mMethod = method; }
-
-std::string HttpHeader::getMethod() const { return mMethod; }
-
-void HttpHeader::setPath(const std::string& path) { mPath = path; }
-
-std::string HttpHeader::getPath() const { return mPath; }
+void HttpHeader::removeEntry(const std::string& name)
+{
+  mEntries.erase(name);
+}

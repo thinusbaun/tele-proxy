@@ -3,15 +3,16 @@
 #include <string_view>
 #include <vector>
 #include "HttpHeader.h"
+#include "HttpRequestHeader.h"
 
 class HttpHeaderParser {
  public:
-  HttpHeader parse(const std::string_view& input);
+  HttpRequestHeader parse(const std::string_view& input);
   HttpHeader parseServerHeader(const std::string_view& input);
 
  private:
   std::vector<std::string_view> splitLines(const std::string_view& input);
-  void parseFirstLine(const std::string_view& input, HttpHeader& header);
+  void parseFirstLineOfRequest(const std::string_view& input, HttpRequestHeader& header);
   void parseRestOfLines(const std::vector<std::string_view>& input,
                         HttpHeader& header);
 };

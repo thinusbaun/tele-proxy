@@ -5,6 +5,7 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <string>
 #include "HttpHeader.h"
+#include "HttpRequestHeader.h"
 
 namespace asio = boost::asio;
 namespace bs = boost::system;
@@ -30,7 +31,7 @@ class Connection : public boost::enable_shared_from_this<Connection> {
   Connection(asio::io_service& io_service);
 
   void handleClientReadHeaders(const bs::error_code& error, size_t len);
-  void connectToTargetServer(const HttpHeader& header);
+  void connectToTargetServer(const HttpRequestHeader& header);
   void handleServerResolve(const bs::error_code& error,
                            asio::ip::tcp::resolver::iterator endpointIterator);
   void handleConnect(const bs::error_code& error,

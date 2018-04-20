@@ -4,6 +4,7 @@
 #include <boost/regex.hpp>
 #include "HttpHeader.h"
 #include "HttpHeaderParser.h"
+#include "HttpRequestHeader.h"
 
 void Connection::start() {
   BOOST_LOG_TRIVIAL(info) << "Connection started";
@@ -32,7 +33,7 @@ void Connection::handleClientReadHeaders(const bs::error_code& error,
                       asio::placeholders::bytes_transferred));
     } else {
       HttpHeaderParser parser;
-      HttpHeader header = parser.parse(mClientHeadersString);
+      HttpRequestHeader header = parser.parse(mClientHeadersString);
       BOOST_LOG_TRIVIAL(info) << "Parsed header from client";
       BOOST_LOG_TRIVIAL(info) << "  METHOD: " << header.getMethod();
       BOOST_LOG_TRIVIAL(info) << "  PATH: " << header.getPath();
@@ -47,7 +48,7 @@ void Connection::handleClientReadHeaders(const bs::error_code& error,
   }
 }
 
-void Connection::connectToTargetServer(const HttpHeader& header) {
+void Connection::connectToTargetServer(const HttpRequestHeader& header) {
   std::string host;
   std::string port = "80";
   boost::regex httpRegex("http://(.*?)(:(\\d+))?(/.*)");

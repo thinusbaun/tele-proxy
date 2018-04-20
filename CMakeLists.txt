@@ -24,7 +24,9 @@ set(SRC_FILES
 	HttpHeader.h
 	HttpHeader.cpp
 	HttpHeaderParser.h
-	HttpHeaderParser.cpp)
+	HttpHeaderParser.cpp
+	HttpRequestHeader.h
+	HttpRequestHeader.cpp)
 
 add_definitions(-D_WIN32_WINNT=0x0601)
 add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
