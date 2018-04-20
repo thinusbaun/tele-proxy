@@ -119,7 +119,7 @@ void Connection::handleConnect(
 }
 
 void Connection::startWriteToServer() {
-  boost::regex regex("http:\/\/(.*?)\/");
+  boost::regex regex(R"(http:\/\/(.*?)\/)");
   // mClientHeadersString = boost::regex_replace(mClientHeadersString, regex,
   // "/");
   mClientHeadersString = boost::regex_replace(
@@ -127,8 +127,8 @@ void Connection::startWriteToServer() {
       boost::regex("\r\nProxy-Connection: [kK]eep-[aA]live\r\n"),
       "\r\nConnection: keep-alive\r\nX-Forwarded-For: 192.168.1.10\r\n");
   mClientHeadersString = boost::regex_replace(
-      mClientHeadersString, boost::regex("\r\Cache-Control: max-age=0\r\n"),
-      "\r\Cache-Control: no-cache\r\n");
+      mClientHeadersString, boost::regex("\r\nCache-Control: max-age=0\r\n"),
+      "\r\nCache-Control: no-cache\r\n");
 
   asio::async_write(mSSocket, asio::buffer(mClientHeadersString),
                     boost::bind(&Connection::handleServerWrite,
