@@ -26,7 +26,9 @@ set(SRC_FILES
 	HttpHeaderParser.h
 	HttpHeaderParser.cpp
 	HttpRequestHeader.h
-	HttpRequestHeader.cpp)
+	HttpRequestHeader.cpp
+	HttpResponseHeader.h
+	HttpResponseHeader.cpp)
 
 if (MSVC)
 	add_definitions(-D_WIN32_WINNT=0x0601)

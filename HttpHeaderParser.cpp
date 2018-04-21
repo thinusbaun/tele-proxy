@@ -10,10 +10,11 @@ HttpRequestHeader HttpHeaderParser::parse(const std::string_view& input) {
   parseRestOfLines(lines, result);
   return result;
 }
-HttpHeader HttpHeaderParser::parseServerHeader(const std::string_view& input) {
-  HttpHeader result;
+HttpResponseHeader HttpHeaderParser::parseResponseHeader(
+    const std::string_view& input) {
+  HttpResponseHeader result;
   auto lines = splitLines(input);
-  // parseFirstLine(lines[0], result);
+  result.setFirstLine(std::string(lines[0]));
   parseRestOfLines(lines, result);
   return result;
 }
@@ -40,7 +41,7 @@ std::vector<std::string_view> HttpHeaderParser::splitLines(
 }
 
 void HttpHeaderParser::parseFirstLineOfRequest(const std::string_view& input,
-                                      HttpRequestHeader& header) {
+                                               HttpRequestHeader& header) {
   std::vector<std::string_view> result;
   std::string::size_type offset = 0;
   std::string::size_type beginoOffset = 0;

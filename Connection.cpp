@@ -162,7 +162,8 @@ void Connection::handleServerReadHeaders(const bs::error_code& error,
     mServerBuff.consume(len);
 
     HttpHeaderParser parser;
-    HttpHeader header = parser.parseServerHeader(mServerHeadersString);
+    HttpResponseHeader header =
+        parser.parseResponseHeader(mServerHeadersString);
     BOOST_LOG_TRIVIAL(info) << "Parsed header from server";
     for (const auto& it : header.getEntries()) {
       BOOST_LOG_TRIVIAL(info) << "  " << it.first << ": " << it.second;
