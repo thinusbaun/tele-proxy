@@ -7,8 +7,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package (Threads REQUIRED) 
 # we will use static libs
-set(Boost_USE_STATIC_LIBS ON)
-
+#set(Boost_USE_STATIC_LIBS OFF)
+add_definitions(-DBOOST_LOG_DYN_LINK)
 # Boost::log required Boost version >= 1.54.0 
 find_package(Boost 1.54.0 REQUIRED COMPONENTS log)
 
@@ -35,6 +35,7 @@ if (MSVC)
 	add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
 	add_definitions(-DBOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE)
 	add_compile_options(/wd4834)
+	add_definitions(-DBOOST_LOG_DYN_LINK)
 endif(MSVC)
 add_executable(grey_proxy ${SRC_FILES})
 target_link_libraries(grey_proxy ${Boost_LIBRARIES} Threads::Threads)
